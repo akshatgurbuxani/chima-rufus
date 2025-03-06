@@ -1,4 +1,4 @@
-# Data Extraction and Filtering Project
+# The Rufus Project
 
 ## Overview
 
