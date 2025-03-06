@@ -53,21 +53,23 @@ class InstructionParser:
                         {"role": "user", "content": prompt}
                     ],
                     max_tokens=1500,
-                    temperature=0.0
+                    temperature=0.0,
+                    stream=True,
+                    response_format={"type": "json_object"}
                 )
 
-                # Log the raw response for debugging
-                print("Raw response from LLM:", response)
-
-                # Extract response and ensure JSON validity
-                filtered_content = response.choices[0].message.content.strip()
-
-                # Clean up the filtered content by removing the code block formatting
-                if filtered_content.startswith("```json") and filtered_content.endswith("```"):
-                    filtered_content = filtered_content[7:-3].strip()  # Remove the ```json and the closing ```
+                # Collect streaming chunks
+                collected_chunks = []
+                for chunk_response in response:
+                    if chunk_response.choices[0].delta.content is not None:
+                        collected_chunks.append(chunk_response.choices[0].delta.content)
+                
+                # Join all chunks to get the complete response
+                filtered_content = "".join(collected_chunks).strip()
 
                 try:
-                    filtered_results.append(json.loads(filtered_content))  # Ensure proper JSON parsing
+                    # Parse the complete JSON response
+                    filtered_results.append(json.loads(filtered_content))
                 except json.JSONDecodeError:
                     print(f"Error parsing LLM response: {filtered_content}")
 
@@ -75,7 +77,7 @@ class InstructionParser:
                 print(f"Error filtering content for chunk: {e}")
 
 
-        return filtered_results 
+        return filtered_results
 
     def _split_content(self, content):
         """
