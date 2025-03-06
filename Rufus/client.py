@@ -1,7 +1,7 @@
 import os
 import json
-from instruction_parser import InstructionParser
-from crawler import AsyncCrawler
+from .instruction_parser import InstructionParser
+from .crawler import AsyncCrawler
 
 class RufusClient:
     """

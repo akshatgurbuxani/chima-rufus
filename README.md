@@ -24,7 +24,7 @@ With Rufus, engineers can provide a concise prompt defining the required data, a
 ## File Structure
 
 - `client.py`: Contains the `RufusClient` class, which orchestrates the web scraping and content filtering process.
-- `instruction_parser.py`: Implements the `InstructionParser` class, responsible for filtering content based on user instructions using the GPT-4o model.
+- `instruction_parser.py`: Implements the `InstructionParser` class, responsible for filtering content based on user instructions using the gpt-3.5-turbo model.
 - `crawler.py`: Contains the `AsyncCrawler` class, which handles the web scraping logic to extract content from specified URLs.
 - `requirements.txt`: Lists the required Python packages for the project.
 - `client_demo.py`: Shows the implementation of how a client would run the project in real time.
@@ -45,7 +45,7 @@ This file defines the `RufusClient` class, which is the main entry point for the
 
 ### 2. `instruction_parser.py`
 
-This file implements the `InstructionParser` class, which processes user instructions to filter content. It uses the OpenAI GPT-4o model to understand the instructions and filter the provided content accordingly.
+This file implements the `InstructionParser` class, which processes user instructions to filter content. It uses the OpenAI gpt-3.5-turbo model to understand the instructions and filter the provided content accordingly.
 
 **Key Methods:**
 - `filter_content(content, instructions)`: Filters the provided content based on user instructions, handling large content by splitting it into manageable chunks and calling the model for each chunk.

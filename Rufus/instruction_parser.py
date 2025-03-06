@@ -1,29 +1,29 @@
-import openai
+from openai import OpenAI
 import json
 
 class InstructionParser:
     """
     InstructionParser processes user instructions to filter content based on those instructions.
 
-    This class utilizes the OpenAI GPT-4o model to understand user instructions and filter the provided content.
+    This class utilizes the OpenAI gpt-3.5-turbo model to understand user instructions and filter the provided content.
 
     Attributes:
-        api_key (str): The OpenAI API key for making requests to the GPT-4o model.
+        api_key (str): The OpenAI API key for making requests to the gpt-3.5-turbo model.
     """
 
     def __init__(self, api_key, max_split_tokens=3000):
         """
         Initializes the InstructionParser with the provided OpenAI API key.
 
-        :param api_key: The OpenAI API key for interacting with the GPT-4o model.
+        :param api_key: The OpenAI API key for interacting with the gpt-3.5-turbo model.
         :param max_split_tokens: The maximum number of tokens per API call.
         """
-        openai.api_key = api_key
+        self.client = OpenAI(api_key=api_key)
         self.max_split_tokens = max_split_tokens
 
     def filter_content(self, content, instructions):
         """
-        Filters the provided content based on user instructions using the GPT-4o model.
+        Filters the provided content based on user instructions using the gpt-3.5-turbo model.
 
         :param content: The raw content in JSON format to be filtered.
         :param instructions: User instructions for filtering the content.
@@ -35,31 +35,41 @@ class InstructionParser:
         filtered_results = []
 
         for chunk in content_chunks:
-            # Prepare the prompt for the LLM
             prompt = (
-                "You are a helpful assistant that filters content based on user instructions. "
-                "Your task is to understand the user's request and filter the provided content accordingly by looking at the 'headings' and 'texts' columns from JSON.\n\n"
-                f"The following is a set of content in JSON format:\n"
-                f"{json.dumps(chunk, indent=2)}\n\n"
+                "You are a helpful assistant that filters content based on user instructions.\n\n"
+                "Your task is to analyze the provided content, focusing on the 'headings' and 'text' fields in JSON format, "
+                "and return only the relevant content based on user instructions.\n\n"
                 f"User instructions: {instructions}\n\n"
-                "Please rewrite the instructions if necessary for clarity, and then filter the content based on these instructions by looking at the 'headings' and 'texts' columns from JSON."
-                "Make suree to return the filtered content in JSON format."
+                "The following is a structured JSON document:\n"
+                f"{json.dumps(chunk, indent=2)}\n\n"
+                "Filter the content accordingly and return **only the filtered content** in valid JSON format."
             )
 
             try:
-                response = openai.ChatCompletion.create(
-                    model="gpt-4o",
+                response = self.client.chat.completions.create(
+                    model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are a helpful assistant that filters content based on user instructions."},
                         {"role": "user", "content": prompt}
                     ],
-                    max_tokens=1500,  # Adjust as needed based on expected output size
+                    max_tokens=1500,
                     temperature=0.0
                 )
 
-                # Extract the filtered content from the response
-                filtered_content = response['choices'][0]['message']['content']
-                filtered_results.append(json.loads(filtered_content))  # Convert the filtered content back to JSON
+                # Log the raw response for debugging
+                print("Raw response from LLM:", response)
+
+                # Extract response and ensure JSON validity
+                filtered_content = response.choices[0].message.content.strip()
+
+                # Clean up the filtered content by removing the code block formatting
+                if filtered_content.startswith("```json") and filtered_content.endswith("```"):
+                    filtered_content = filtered_content[7:-3].strip()  # Remove the ```json and the closing ```
+
+                try:
+                    filtered_results.append(json.loads(filtered_content))  # Ensure proper JSON parsing
+                except json.JSONDecodeError:
+                    print(f"Error parsing LLM response: {filtered_content}")
 
             except Exception as e:
                 print(f"Error filtering content for chunk: {e}")
@@ -82,11 +92,12 @@ class InstructionParser:
 
         for token in tokens:
             current_chunk.append(token)
-            if len(' '.join(current_chunk)) >= self.max_split_tokens:
-                chunks.append(json.loads(' '.join(current_chunk)))  # Convert back to JSON
-                current_chunk = []
+            if len(current_chunk) >= self.max_split_tokens:
+                chunks.append(current_chunk)
+                current_chunk = []  # Reset for next chunk
 
+        # Handle last chunk
         if current_chunk:
-            chunks.append(json.loads(' '.join(current_chunk)))  # Add the last chunk
+            chunks.append(current_chunk)
 
         return chunks
